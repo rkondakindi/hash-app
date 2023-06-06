@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: birthday
+  annotations:
+    linkerd.io/inject: "enabled"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hash-app
+  namespace: birthday
+  labels:
+    app: hash-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hash-app
+  template:
+    metadata:
+      labels:
+        app: hash-app
+      annotations:
+        linkerd.io/inject: "enabled"
+    spec:
+      containers:
+      - name: hash-app
+        # image: registry.gitlab.com/rialtic-external/exercises/hash-app:latest
+        image: raghupal22/hash-app:latest
+        ports:
+          - containerPort: 8080
+            name: http
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"

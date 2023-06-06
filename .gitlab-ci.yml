@@ -1,0 +1,42 @@
+variables:
+  APP_NAME: "hash-app"
+  DOCKER_REPO: "registry.gitlab.com/rialtic-external/exercises/hash-app"
+  APP_AUTH_TOKEN: "alksflaslljajsdlfasd"
+
+.docker_login:
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
+stages:
+  - test
+  - build
+  - test_image
+
+pytest:
+  stage: test
+  image: python:3.9
+  script:
+    - cd app
+    - pip install -r requirements.txt  # Install dependencies if needed
+    - pytest
+
+build:
+  image: docker:latest
+  stage: build
+  services:
+    - docker:dind
+  extends: .docker_login
+  script:
+    - cd app
+    - docker build -t $APP_NAME:latest .
+    - docker tag $APP_NAME:latest $DOCKER_REPO:${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
+    - docker push $DOCKER_REPO:${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
+
+image_test:
+  image: python:latest
+  stage: test_image
+  services:
+    - name: $DOCKER_REPO:latest
+      alias: $APP_NAME
+  script: |
+    curl http://${APP_NAME}:8080/get_hash_data?hash_value=7e477f9c6c59de8a09e15d329809fa89a2c07a06e306c7c6f5c7d7170e01eb97 --header "Authorization: Basic $APP_AUTH_TOKEN"
